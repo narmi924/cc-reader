@@ -1,0 +1,3 @@
+{"type":"user","cwd":"/work/trail-map","timestamp":"2026-11-06T00:45:00Z","message":{"role":"user","content":"How many zoom levels can we cache for one national park?"}}
+{"type":"assistant","cwd":"/work/trail-map","timestamp":"2026-11-06T00:46:00Z","message":{"role":"assistant","content":"Zoom 10 to 15 covers the trails and fits in about 180 MB for a park this size. Fetch 16 only along the trail lines.","stop_reason":"end_turn"}}
+{"type":"custom-title","customTitle":"Offline tiles for the hiking map"}

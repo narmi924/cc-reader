@@ -1,0 +1,3 @@
+{"type":"user","cwd":"/work/invoice-api","timestamp":"2026-11-19T02:50:00Z","message":{"role":"user","content":"Rate limit per API key, not per IP."}}
+{"type":"assistant","cwd":"/work/invoice-api","timestamp":"2026-11-19T02:51:00Z","message":{"role":"assistant","content":"Use a token bucket keyed by the API key in Redis. Office networks share an IP, so per-IP limits block whole teams.","stop_reason":"end_turn"}}
+{"type":"custom-title","customTitle":"Rate limit by API key"}

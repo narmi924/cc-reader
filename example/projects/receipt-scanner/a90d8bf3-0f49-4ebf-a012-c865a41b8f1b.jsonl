@@ -1,0 +1,3 @@
+{"type":"user","cwd":"/work/receipt-scanner","timestamp":"2026-11-18T05:10:00Z","message":{"role":"user","content":"Amounts like RM12.50 come out as 1250."}}
+{"type":"assistant","cwd":"/work/receipt-scanner","timestamp":"2026-11-18T05:11:00Z","message":{"role":"assistant","content":"The parser treats RM as an unknown prefix and drops the decimal point with it. Match the currency code first, then parse the number.","stop_reason":"end_turn"}}
+{"type":"custom-title","customTitle":"Parse SGD and MYR amounts"}

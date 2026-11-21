@@ -1,0 +1,3 @@
+{"type":"user","cwd":"/work/dotfiles","timestamp":"2026-11-08T12:00:00Z","message":{"role":"user","content":"Keep one tmux config for the laptop and the build server."}}
+{"type":"assistant","cwd":"/work/dotfiles","timestamp":"2026-11-08T12:01:00Z","message":{"role":"assistant","content":"Put shared settings in tmux.conf and source tmux.local.conf if it exists. Each machine keeps its own overrides there.","stop_reason":"end_turn"}}
+{"type":"custom-title","customTitle":"Share tmux config across machines"}

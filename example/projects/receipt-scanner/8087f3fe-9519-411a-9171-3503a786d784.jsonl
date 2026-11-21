@@ -1,0 +1,3 @@
+{"type":"user","cwd":"/work/receipt-scanner","timestamp":"2026-10-30T03:15:00Z","message":{"role":"user","content":"OCR misses the total on long receipts."}}
+{"type":"assistant","cwd":"/work/receipt-scanner","timestamp":"2026-10-30T03:16:00Z","message":{"role":"assistant","content":"The photo is scaled down before OCR, so the bottom lines get too small. Crop to the receipt edges first, then scale.","stop_reason":"end_turn"}}
+{"type":"custom-title","customTitle":"Crop receipts before OCR"}
