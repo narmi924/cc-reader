@@ -34,7 +34,7 @@ The reader opens in your browser. Choose **简体中文** in the project sidebar
 
 > Start Claude Code Session Reader on this computer using the README, find my local Claude Code sessions, and give me the browser link.
 
-**Try it without a history.** Add `--demo` to the launch command. In **Search all sessions**, type `Parakeet`, open the main conversation's match, and click **Copy reference**.
+**Try it without a history.** Add `--demo` to the launch command. The demo uses its own port and search index, so you can keep your personal reader open. In **Search all sessions**, type `Parakeet`, open the main conversation's match, and click **Copy reference**.
 
 I haven't tried the full workflow with real Claude Code sessions on macOS or Linux yet, so please open an issue or send a fix if you run into trouble.
 

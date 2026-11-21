@@ -437,6 +437,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.demo:
         ROOT = APP / "example" / "projects"
+        SEARCH_DB = search_database(ROOT)
     PORT = args.port if args.port is not None else (48764 if args.demo else 48763)
     if not 1 <= PORT <= 65535:
         parser.error("port must be between 1 and 65535")
