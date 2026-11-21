@@ -8,17 +8,16 @@
 
 ## 我为什么做这个工具
 
-我平时在终端和 VS Code 里用 Claude Code。过几个星期，可能还记得当时讨论过哪个模型，或者 Claude 说过一句什么话，但很少记得会话叫什么。以前我会在 VS Code 里打开整个 `.claude` 目录，跨文件搜 JSONL，再从一长行记录里辨认是谁说的。有时候干脆让 Codex 或 Claude 帮我找。
+我平时在终端和 VS Code 里用 Claude Code。隔几个星期，我往往还记得一个模型名，甚至记得 Claude 说过半句话，却忘了是哪次会话。以前我会在 VS Code 里打开整个 `.claude` 目录搜 JSONL，有时干脆让 Codex 帮我找。可我搜到那个词，还是想往上翻几句。我们只是提过这个选项，还是当时真的决定这么做了？
 
-找旧会话已经有好几种顺手的办法，选哪个取决于找到以后想做什么。
+| 现有办法 | 能帮我找到什么 | 还缺哪一步 |
+| --- | --- | --- |
+| Claude Code 的 `/resume` | 预览旧会话，回去接着聊。 | 恢复会话时，已经压进摘要的消息不会逐条载入。想核对摘要之前的原话，还得翻磁盘上的记录。[会话恢复说明](https://code.claude.com/docs/en/sessions#what-a-resumed-session-restores) |
+| 在 VS Code 里搜 JSONL | 在所有项目里搜一个词，直接打开命中那一行。 | 两句话中间可能隔着好几条工具调用。我得自己辨认哪些是我的追问、哪些是工具输出，才能把问答读连贯。 |
+| claude-history | 在终端搜到消息，按 `y` 就能复制那条原文。 | 这次复制拿到的是 Markdown 正文。文件路径和会话 ID 各有一个复制键，想把原话和出处一起给 Codex，还得自己拼。[查看器快捷键](https://github.com/raine/claude-history#keyboard-navigation-viewer-mode) |
+| Claude Code Chat Explorer | 在浏览器里搜消息和工具输出，也能让 agent 通过 MCP 搜到摘录。 | 网页导出的是整段会话，MCP 结果里的资源链接也指向整段记录。我还得标出要让另一个 agent 读的是哪一句。[导出和 MCP 搜索](https://github.com/drewburchfield/claude-code-chat-explorer#conversation-viewer) |
 
-| 我想做什么 | 适合从哪里开始 |
-| --- | --- |
-| 回到昨天那次 Claude Code 会话接着写 | 在内置会话列表里预览，选中后继续。[Claude Code `/resume`](https://code.claude.com/docs/en/sessions#use-the-session-picker) |
-| 在终端一起搜 Claude Code 和 Codex 的历史，或者让 agent 自己找 | 可以交互式搜索，也可以让 agent 用 `agent search` 查找、用 `agent read` 读取。[claude-history](https://github.com/raine/claude-history) |
-| 找某次工具输出里的一段报错 | 在浏览器里搜工具参数和返回结果，按工具筛选，也能让 agent 通过 MCP 查同一份索引。[Claude Code Chat Explorer](https://github.com/drewburchfield/claude-code-chat-explorer) |
-
-我做这个阅读器，是因为新任务里经常只需要旧对话中的**某一句话**。拿演示里的 `Parakeet` 来说，两条消息都提到了它。一条是子代理在追回调，另一条是 Claude 回答我「字幕最后由哪个模型定稿」。我想自己看看前后两句，确认哪条是我要找的。长对话被压缩以后，只要原文还在磁盘上，也能这样翻回去。然后把那句回答连同文件位置一起复制给 Codex，直接问「现在的代码还按这个分工跑吗？」
+所以我把「复制引用」放在了搜到的每段原文旁边。演示里搜 `Parakeet` 会找到两条消息。子代理在追踪字幕回调，主对话里 Claude 回答了我问的「最后由哪个模型定稿」。点开后者，能连着读到我的问题和 Claude 的回答。复制引用，原话、说话人和它在本地文件里的位置就一起进了剪贴板。我把它贴给 Codex，接着问「现在的代码还按这个分工跑吗？」
 
 ## 快速开始
 

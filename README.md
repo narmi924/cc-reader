@@ -8,17 +8,16 @@ Find an old Claude Code conversation by a detail you remember, read the exchange
 
 ## Why I built this
 
-I use Claude Code in the terminal and in VS Code. Weeks later I might remember a model name or something Claude said, but rarely the session title. I used to open my `.claude` directory in VS Code, search across JSONL files, and untangle the matching line. Sometimes I just asked another agent to find the conversation for me.
+I use Claude Code in the terminal and in VS Code. Weeks later I can often remember a model name, sometimes even half a sentence Claude wrote, but rarely which session it came from. I used to open my whole `.claude` directory in VS Code and search the JSONL files. Sometimes I'd ask Codex to look for me. Even with the right word on screen, I still had a question. Was this an option we'd considered, or what we'd actually decided to do?
 
-There are a few good ways back into a conversation. Which one I'd reach for depends on what I want to do next.
+| Existing option | What it finds | What's still missing for me |
+| --- | --- | --- |
+| Claude Code's `/resume` | I can preview an old session and pick up where I left off. | Once a message has been summarized, resuming gives Claude the summary. To see the original wording, I still need the transcript on disk. [What a resumed session restores](https://code.claude.com/docs/en/sessions#what-a-resumed-session-restores) |
+| Searching JSONL in VS Code | One search across projects takes me straight to the matching line. | A question and its answer can sit several tool calls apart. I have to sort my follow-ups from tool output to read the exchange. |
+| claude-history | I can find a message in the terminal and press `y` to copy it. | That puts the raw Markdown on my clipboard. The file path and session ID have separate copy commands, so I still have to assemble the quote and its source for Codex. [Viewer shortcuts](https://github.com/raine/claude-history#keyboard-navigation-viewer-mode) |
+| Claude Code Chat Explorer | I can search messages and tool output in the browser. An agent can find matching excerpts over MCP, too. | The browser exports a whole conversation, and an MCP result links to the conversation transcript. I still have to point the next agent to the particular message I picked. [Conversation viewer and MCP search](https://github.com/drewburchfield/claude-code-chat-explorer#conversation-viewer) |
 
-| What I want to do | Where I'd start |
-| --- | --- |
-| Pick up yesterday's conversation in Claude Code | Preview the session in the built-in picker and resume it. [Claude Code `/resume`](https://code.claude.com/docs/en/sessions#use-the-session-picker) |
-| Search Claude Code and Codex history from the terminal, or let an agent do the lookup | Search both histories interactively, or give the agent the `agent search` and `agent read` commands. [claude-history](https://github.com/raine/claude-history) |
-| Find an error buried in a tool result | Search tool inputs and outputs in the browser, filter by tool, or let an agent query the same index over MCP. [Claude Code Chat Explorer](https://github.com/drewburchfield/claude-code-chat-explorer) |
-
-I built this reader for the times when a new task needs *one message* from an old conversation. In the demo, two messages mention `Parakeet`. The subagent traces a callback. Claude's reply answers my question about which model finalizes the caption. I want to read the turns around each match and choose the right one, even after compaction if the original is still on disk. Then I can paste the answer and its file location into Codex and ask, “Does the code still follow this split?”
+That's why there's a **Copy reference** button beside each matching passage. In the demo, `Parakeet` turns up twice. The subagent is tracing a caption callback. In the main conversation, Claude is answering my question about which model finalizes a caption. I open that match, read my question and the reply together, then copy the excerpt with its speaker and its exact position in the local file. All I need to add when I paste it into Codex is “Does the code still follow this split?”
 
 ## Quick start
 
