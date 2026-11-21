@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import socket
 import sqlite3
 import sys
 import threading
@@ -372,6 +373,15 @@ def search_messages(term, project="", file=""):
     return matches
 
 
+class ReaderServer(ThreadingHTTPServer):
+    allow_reuse_address = os.name != "nt"
+
+    def server_bind(self):
+        if os.name == "nt":
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
@@ -432,7 +442,7 @@ if __name__ == "__main__":
         parser.error("port must be between 1 and 65535")
     url = f"http://127.0.0.1:{PORT}"
     try:
-        server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+        server = ReaderServer(("127.0.0.1", PORT), Handler)
     except OSError:
         try:
             with urlopen(url + "/api/info", timeout=2) as response:
