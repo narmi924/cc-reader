@@ -67,6 +67,24 @@ async function api(endpoint, params = {}) {
   if (!response.ok) throw new Error(t("Could not read this record. Refresh and try again.","无法读取记录，请刷新后重试。"));
   return response.json();
 }
+const fold = value => value.replace(/[A-Z]/g,c => c.toLowerCase());
+const terms = value => [...new Set(fold(value).split(/\s+/).filter(Boolean))];
+const hasAll = (text,words) => words.length > 0 && words.every(w => fold(text).includes(w));
+// Every place a search word appears, left to right. Where two words start together
+// the longer one wins, the same rule the server uses to count matches.
+function occurrences(text,words) {
+  const haystack = fold(text), next = words.map(w => haystack.indexOf(w)), found = [];
+  for (let at = 0;;) {
+    let best = -1;
+    words.forEach((w,k) => {
+      if (next[k] !== -1 && next[k] < at) next[k] = haystack.indexOf(w,at);
+      if (next[k] !== -1 && (best < 0 || next[k] < next[best] || next[k] === next[best] && w.length > words[best].length)) best = k;
+    });
+    if (best < 0) return found;
+    at = next[best] + words[best].length;
+    found.push([next[best],at]);
+  }
+}
 function showMenu(open) {
   document.body.classList.toggle("nav-open", open);
   $("menu").setAttribute("aria-expanded", String(open));
@@ -184,20 +202,23 @@ function copyButton(label, getText) {
   });
   return copy;
 }
-function referenceText(hit, occurrence = 0) {
+// In a subagent transcript, the "user" turns are Claude's instructions to the subagent.
+function speaker(hit, forAgent) {
+  if (hit.file !== hit.parent) return hit.role === "user" ? t("Claude to subagent","Claude 交给子代理") : t("Subagent","子代理");
+  return hit.role === "user" ? (forAgent ? t("User","用户") : t("You","你")) : "Claude";
+}
+function referenceText(hit, span) {
   const id = hit.parent.split("/").pop().replace(/\.jsonl$/, "");
-  const speaker = hit.role === "user" ? t("User","用户") : "Claude";
   let quote = hit.before + hit.match + hit.after;
-  if (hit.body) {
-    const at = offsets(hit.body,hit.match)[occurrence];
-    const end = at+hit.match.length+80;
-    quote = (at > 56 ? "…" : "") + hit.body.slice(Math.max(0,at-56),end) + (end < hit.body.length ? "…" : "");
+  if (hit.body?.length <= 400) quote = hit.body;
+  else if (span) {
+    const [start,end] = span, stop = end+80;
+    quote = (start > 56 ? "…" : "") + hit.body.slice(Math.max(0,start-56),stop) + (stop < hit.body.length ? "…" : "");
   }
   const source = (info.demo ? "example/projects" : info.root) + "/" + hit.file;
   return [t("Claude Code local session: ","Claude Code 本地会话：") + id,
-    t("Transcript: ","记录文件：") + source,
-    t("Byte offset: ","字节偏移：") + hit.at + t(", block: ","，内容块：") + hit.index,
-    speaker + " · “" + quote.trim() + "”"].join("\n");
+    t("Transcript: ","记录文件：") + source + t(", line ","，第 ") + hit.line + t(""," 行"),
+    speaker(hit,true) + t(": “","：“") + quote.replace(/\s+/g," ").trim() + "”"].join("\n");
 }
 function searchInput(label) {
   const wrap = n("label","search");
@@ -208,13 +229,21 @@ function searchInput(label) {
   wrap.append(n("span"),input);
   return {wrap,input};
 }
+function marked(text, words) {
+  const fragment = document.createDocumentFragment();
+  let last = 0;
+  for (const [start,end] of occurrences(text,words)) {
+    fragment.append(document.createTextNode(text.slice(last,start)),n("mark","",text.slice(start,end)));
+    last = end;
+  }
+  fragment.append(document.createTextNode(text.slice(last)));
+  return fragment;
+}
 function hitButton(hit,term) {
   const params = {session:hit.parent,q:term,at:hit.at,index:hit.index};
   if (hit.file !== hit.parent) params.agent = hit.file;
   const el = button("","hit",() => navigate(params));
-  const speaker = hit.role === "user" ? t("You","你") : "Claude";
-  el.append(n("span","tag",t("Message","正文")),n("small","", (params.agent ? t("Subagent · ","子代理 · ") : "") + speaker),
-    document.createTextNode(hit.before),n("mark","",hit.match),document.createTextNode(hit.after));
+  el.append(n("span","tag",t("Message","正文")),n("small","",speaker(hit)),marked(hit.before + hit.match + hit.after,terms(term)));
   const row = n("div","hit-row");
   row.append(el,copyButton(t("Copy reference","复制引用"),() => referenceText(hit)));
   return row;
@@ -233,7 +262,7 @@ function showSessions(all, initial) {
   content.append(status,list);
   let sequence = 0;
   function draw(term,hits,complete) {
-    const query = term.toLowerCase();
+    const words = terms(term);
     const bySession = new Map();
     for (const hit of hits) {
       if (!bySession.has(hit.parent)) bySession.set(hit.parent,[]);
@@ -241,13 +270,13 @@ function showSessions(all, initial) {
     }
     const rows = document.createDocumentFragment();
     for (const p of all ? projects : projects.filter(p => p.id === active.id)) {
-      if (all && p.path.toLowerCase().includes(query)) {
+      if (all && hasAll(p.path,words)) {
         rows.append(button(p.path,"project-hit",() => navigate({project:p.id})));
       }
       for (const s of p.sessions) {
         const found = bySession.get(s.id) || [];
-        const titleHit = term && s.title.toLowerCase().includes(query);
-        const idHit = term && s.id.split("/").pop().toLowerCase().includes(query);
+        const titleHit = hasAll(s.title,words);
+        const idHit = hasAll(s.id.split("/").pop(),words);
         if (term && !found.length && !titleHit && !idHit) continue;
         const row = n("div","session");
         const text = n("div","session-text");
@@ -390,14 +419,14 @@ function eventContent(e,id) {
     return el;
   }
   if (e.kind === "tool_use" || e.kind === "server_tool_use") {
-    return disclosure((e.label === "Tool" ? t("Tool","工具") : e.label) + (e.error ? t(" · Error"," · 错误") : ""),e.hint,async () => {
+    return disclosure((e.label === "Tool" ? t("Tool","工具") : e.label) + (e.error ? t(" (error)","（出错）") : ""),e.hint,async () => {
       const [call,...results] = await Promise.all([read(e),...(e.results || []).map(ref => read(ref))]);
       const el = n("div");
       el.append(n("small","",t("Arguments","调用参数")),fields(call.input));
       results.forEach((r,i) => el.append(n("small",r.is_error ? "error" : "",r.is_error ? t("Error output","错误输出") : t("Result","返回结果")),resultBody(r,e.results[i])));
       if (!results.length) el.append(n("small","",t("No result recorded","无返回结果")));
       for (const a of mainAgents.filter(a => a.tool && a.tool === e.tool)) {
-        el.append(button(t("Open subagent · ","查看子代理 · ") + a.name,"detail-link",() => navigate({session:session.id,agent:a.id})));
+        el.append(button(t("Open subagent: ","查看子代理：") + a.name,"detail-link",() => navigate({session:session.id,agent:a.id})));
       }
       return el;
     },e.error ? "error" : "");
@@ -456,22 +485,17 @@ function renderGroup(g,id) {
   const bar = n("header","byline");
   const time = n("time","",g.time ? timeString(g.time,{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}) : "");
   time.title = g.time;
-  bar.append(n("strong","",user ? t("You","你") : "Claude"),time);
+  const subagent = id !== session.id;
+  bar.append(n("strong","",user ? (subagent ? "Claude" : t("You","你")) : (subagent ? t("Subagent","子代理") : "Claude")),time);
   const body = n("div","body");
   for (const e of g.events) body.append(renderEvent(e,id));
   el.append(bar,body);
   return el;
 }
-function offsets(text,term) {
-  const fold = value => value.replace(/[A-Z]/g,c => c.toLowerCase());
-  const haystack = fold(text), needle = fold(term), found = [];
-  for (let at = haystack.indexOf(needle); at !== -1; at = haystack.indexOf(needle,at+needle.length)) found.push(at);
-  return found;
-}
-function highlightHit(el,hit,term,occurrence) {
-  const positions = offsets(el.textContent,term);
+function highlightHit(el,hit,words,occurrence) {
+  const positions = occurrences(el.textContent,words);
   if (CSS.highlights && positions.length === hit.count) {
-    const start = positions[occurrence], end = start + term.length;
+    const [start,end] = positions[occurrence];
     const walker = document.createTreeWalker(el,NodeFilter.SHOW_TEXT);
     const range = new Range();
     let pos = 0;
@@ -487,11 +511,11 @@ function highlightHit(el,hit,term,occurrence) {
     }
   }
   // A Markdown link destination or formatting marker can exist only in the source.
-  const start = offsets(hit.body,term)[occurrence];
+  const [start,end] = occurrences(hit.body,words)[occurrence];
   const excerpt = n("pre","match-source");
-  const mark = n("mark","",hit.body.slice(start,start+term.length));
+  const mark = n("mark","",hit.body.slice(start,end));
   excerpt.append(document.createTextNode(hit.body.slice(Math.max(0,start-56),start)),mark,
-    document.createTextNode(hit.body.slice(start+term.length,start+term.length+80)));
+    document.createTextNode(hit.body.slice(end,end+80)));
   el.after(excerpt);
   return mark;
 }
@@ -511,7 +535,7 @@ function showChat(data,id,seed = Object.fromEntries(new URLSearchParams(location
     const picker = n("select");
     picker.setAttribute("aria-label",t("Choose conversation","选择主对话或子代理"));
     picker.add(new Option(t("Main conversation","主对话"),session.id));
-    mainAgents.forEach(a => picker.add(new Option(t("Subagent · ","子代理 · ") + a.name,a.id)));
+    mainAgents.forEach(a => picker.add(new Option(t("Subagent: ","子代理：") + a.name,a.id)));
     picker.value = id;
     picker.onchange = () => navigate(picker.value === session.id ? {session:session.id} : {session:session.id,agent:picker.value});
     controls.append(picker);
@@ -528,7 +552,7 @@ function showChat(data,id,seed = Object.fromEntries(new URLSearchParams(location
   previous.setAttribute("aria-label",t("Previous match","上一个匹配"));
   following.setAttribute("aria-label",t("Next match","下一个匹配"));
   let selected;
-  const copyReference = copyButton(t("Copy reference","复制引用"),() => referenceText(selected.hit,selected.occurrence));
+  const copyReference = copyButton(t("Copy reference","复制引用"),() => referenceText(selected.hit,selected.span));
   copyReference.hidden = true;
   bar.append(wrap,count,previous,following,copyReference);
   content.replaceChildren(button(t("← Project sessions","← 项目会话"),"back",() => navigate({project:project.id})),n("h1","chat-title",title),controls,bar,thread);
@@ -604,7 +628,8 @@ function showChat(data,id,seed = Object.fromEntries(new URLSearchParams(location
     if (group < 0) { count.textContent = t("The transcript changed. Search again.","记录已变动，请重新搜索"); return; }
     if (!nodes.has(group)) startAt(Math.max(0,group-12));
     const node = nodes.get(group);
-    selected = {hit,occurrence:ordinal};
+    const words = terms(input.value);
+    selected = {hit,span:occurrences(hit.body,words)[ordinal]};
     copyReference.hidden = false;
     try {
       if (node.matches("details")) await reveal(node);
@@ -618,7 +643,7 @@ function showChat(data,id,seed = Object.fromEntries(new URLSearchParams(location
         if (!valid()) return;
         el = details.querySelector(".inside");
       }
-      const range = highlightHit(el,hit,input.value.trim(),ordinal);
+      const range = highlightHit(el,hit,words,ordinal);
       const y = range.getBoundingClientRect().top - viewport.getBoundingClientRect().top;
       viewport.scrollTop += y - Math.max(bar.offsetHeight+12,viewport.clientHeight*0.35);
     } catch (error) {

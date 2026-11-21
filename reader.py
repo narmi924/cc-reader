@@ -5,17 +5,19 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import socket
 import sqlite3
 import sys
 import threading
 import webbrowser
 from contextlib import closing
+from datetime import datetime
 from functools import lru_cache
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path, PureWindowsPath
 from urllib.parse import parse_qs, urlsplit
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 
 ROOT = (Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude").expanduser() / "projects").resolve()
@@ -34,10 +36,19 @@ def snippet(value, limit=100):
     return " ".join(str(value or "")[:limit * 3].split())[:limit]
 
 
+def epoch(timestamp):
+    try:
+        return datetime.fromisoformat(timestamp.replace("Z", "+00:00")).timestamp()
+    except (AttributeError, ValueError):
+        return None
+
+
 @lru_cache(maxsize=1024)
 def session_header(path, size, modified):
     titles = {}
     cwd = ""
+    # Copied or synced transcripts get new file times. The last record keeps the real one.
+    last = None
     with path.open("rb") as stream:
         # The directory is encoded ambiguously. Read the original cwd from a record.
         for line in stream:
@@ -65,8 +76,9 @@ def session_header(path, size, modified):
             for key in ("customTitle", "aiTitle", "summary", "lastPrompt"):
                 if isinstance(row.get(key), str) and row[key].strip():
                     titles[key] = snippet(row[key], 160)
+            last = epoch(row.get("timestamp")) or last
     title = next((titles[k] for k in ("customTitle", "aiTitle", "prompt", "summary", "lastPrompt") if titles.get(k)), path.stem)
-    return dict(id=path.relative_to(ROOT).as_posix(), cwd=cwd, title=title, date=modified / 1e9, size=size)
+    return dict(id=path.relative_to(ROOT).as_posix(), cwd=cwd, title=title, date=last or modified / 1e9, size=size)
 
 
 def catalog():
@@ -258,13 +270,17 @@ def search_blocks(row):
 
 def init_search():
     with closing(sqlite3.connect(SEARCH_DB)) as db:
+        # The index is a cache. Rebuild it when its layout changes.
+        if db.execute("PRAGMA user_version").fetchone()[0] != 2:
+            db.executescript("DROP TABLE IF EXISTS messages; DROP TABLE IF EXISTS sources;")
         db.executescript("""
             CREATE TABLE IF NOT EXISTS sources (
                 path TEXT PRIMARY KEY, project TEXT, parent TEXT, identity TEXT,
-                size INTEGER, modified INTEGER, position INTEGER, tail BLOB);
+                size INTEGER, modified INTEGER, position INTEGER, tail BLOB, line INTEGER);
             CREATE TABLE IF NOT EXISTS messages (
-                path TEXT, at INTEGER, idx INTEGER, role TEXT, body TEXT,
+                path TEXT, at INTEGER, idx INTEGER, role TEXT, body TEXT, line INTEGER,
                 PRIMARY KEY (path, at, idx));
+            PRAGMA user_version = 2;
         """)
 
 
@@ -274,7 +290,7 @@ def sync_search(project="", file=""):
     where, args = search_scope(project, file)
     with index_lock, closing(sqlite3.connect(SEARCH_DB, timeout=60)) as db, db:
         db.execute("BEGIN IMMEDIATE")
-        known = {r[0]: r[1:] for r in db.execute("SELECT path,identity,size,modified,position,tail FROM sources" + where, args)}
+        known = {r[0]: r[1:] for r in db.execute("SELECT path,identity,size,modified,position,tail,line FROM sources" + where, args)}
         if file:
             paths = [transcript_path(file)]
         else:
@@ -282,8 +298,6 @@ def sync_search(project="", file=""):
             prefix = "" if project else "*/"
             paths = [*base.glob(prefix + "*.jsonl"), *base.glob(prefix + "*/subagents/**/*.jsonl")]
         for path in paths:
-            if not path.resolve().is_relative_to(ROOT):
-                continue
             key = path.relative_to(ROOT).as_posix()
             try:
                 st = path.stat()
@@ -292,39 +306,44 @@ def sync_search(project="", file=""):
                 if old and old[:3] == (ident, st.st_size, st.st_mtime_ns):
                     del known[key]
                     continue
+                # Resolving every path is slow on Windows, so only check files that need reading.
+                if not path.resolve().is_relative_to(ROOT):
+                    continue
                 with path.open("rb") as fp:
                     st = os.fstat(fp.fileno())
                     ident = str(st.st_ino)
-                    pos = 0
+                    pos = lines = 0
                     if old and ident == old[0] and st.st_size > old[1]:
                         fp.seek(old[3] - len(old[4]))
                         if fp.read(len(old[4])) == old[4]:
-                            pos = old[3]
+                            pos, lines = old[3], old[5]
                     if not pos:
                         db.execute("DELETE FROM messages WHERE path=?", (key,))
                     fp.seek(pos)
                     while pos < st.st_size:
-                        line = fp.readline(st.st_size - pos)
-                        if not line.endswith(b"\n"):
+                        record = fp.readline(st.st_size - pos)
+                        if not record.endswith(b"\n"):
                             break
                         at, pos = pos, fp.tell()
+                        lines += 1
                         try:
-                            row = json.loads(line)
+                            row = json.loads(record)
                         except ValueError:
                             continue
                         for idx, role, text in search_blocks(row):
                             body = generated_text.sub("", text) if role == "user" else text
                             if body.strip():
                                 # SQLite TEXT must be valid UTF-8, even for malformed pasted Unicode.
-                                db.execute("INSERT INTO messages VALUES (?,?,?,?,?)", (key, at, idx, role, body.encode("utf-8", "replace").decode()))
+                                db.execute("INSERT INTO messages VALUES (?,?,?,?,?,?)",
+                                           (key, at, idx, role, body.encode("utf-8", "replace").decode(), lines))
                     fp.seek(max(0, pos - 128))
                     tail = fp.read(min(pos, 128))
             except FileNotFoundError:
                 continue
             parts = key.split("/")
             parent = key if len(parts) == 2 else parts[0] + "/" + parts[1] + ".jsonl"
-            db.execute("INSERT OR REPLACE INTO sources VALUES (?,?,?,?,?,?,?,?)",
-                       (key, parts[0], parent, ident, st.st_size, st.st_mtime_ns, pos, tail))
+            db.execute("INSERT OR REPLACE INTO sources VALUES (?,?,?,?,?,?,?,?,?)",
+                       (key, parts[0], parent, ident, st.st_size, st.st_mtime_ns, pos, tail, lines))
             known.pop(key, None)
         for key in known:
             db.execute("DELETE FROM messages WHERE path=?", (key,))
@@ -348,25 +367,27 @@ def search_scope(project, file):
 
 
 def search_messages(term, project="", file=""):
-    if not term.strip():
+    # A message matches when it contains every word, in any order.
+    words = term.split()
+    if not words:
         return []
     sync_search(project, file)
     where, args = search_scope(project, file)
-    sql = ("SELECT s.parent,m.path,m.at,m.idx,m.role,m.body FROM messages m JOIN "
-           "(SELECT path,parent FROM sources" + where + ") s ON s.path=m.path "
-           "WHERE instr(lower(m.body),lower(?))>0 ORDER BY m.path,m.at,m.idx")
+    sql = ("SELECT s.parent,m.path,m.at,m.idx,m.role,m.body,m.line FROM messages m JOIN "
+           "(SELECT path,parent FROM sources" + where + ") s ON s.path=m.path WHERE " +
+           " AND ".join(["instr(lower(m.body),lower(?))>0"] * len(words)) + " ORDER BY m.path,m.at,m.idx")
     matches = []
-    pattern = re.compile(re.escape(term), re.I | re.ASCII)
+    pattern = re.compile("|".join(re.escape(w) for w in sorted(words, key=len, reverse=True)), re.I | re.ASCII)
     with closing(sqlite3.connect(SEARCH_DB)) as db:
         db.execute("BEGIN")
-        for parent, path, at, idx, role, body in db.execute(sql, (*args, term)):
+        for parent, path, at, idx, role, body, line in db.execute(sql, (*args, *words)):
             hit = pattern.search(body)
             a, b = hit.span()
-            matches.append(dict(parent=parent, file=path, at=at, index=idx, role=role,
+            matches.append(dict(parent=parent, file=path, at=at, index=idx, role=role, line=line,
                                 before=("…" if a > 56 else "") + body[max(0,a-56):a], match=body[a:b],
                                 after=body[b:b+80] + ("…" if b+80 < len(body) else ""),
                                 count=sum(1 for _ in pattern.finditer(body)) if file else 1,
-                                **({"body": body} if file else {})))
+                                **({"body": body} if file or len(body) <= 400 else {})))
         if file:
             source = db.execute("SELECT modified FROM sources WHERE path=?", (file,)).fetchone()
             return {"hits": matches, "revision": str(source[0]) if source else ""}
@@ -380,6 +401,26 @@ class ReaderServer(ThreadingHTTPServer):
         if os.name == "nt":
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
         super().server_bind()
+
+
+def access_key():
+    # Other accounts on a shared machine can reach 127.0.0.1 too. Only the
+    # current user can read this file, and the browser keeps the key in a cookie.
+    path = SEARCH_DB.parent / "key"
+    try:
+        key = path.read_text().strip()
+    except FileNotFoundError:
+        key = ""
+    if not key:
+        key = secrets.token_urlsafe(24)
+        with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as stream:
+            stream.write(key)
+    return key
+
+
+LOCAL_HOST = re.compile(r"(127\.0\.0\.1|localhost|\[::1\])(:\d+)?", re.I)
+KEY = ""
+LOCKED = "This reader only opens from the link it printed when it started.\n只能通过阅读器启动时打印的链接打开。\n".encode()
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -396,12 +437,29 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(content)
 
+    def cookie(self):
+        for part in (self.headers.get("Cookie") or "").split(";"):
+            name, _, value = part.strip().partition("=")
+            if name == f"reader-{PORT}":
+                return value
+        return ""
+
     def do_GET(self):
-        if self.headers.get("Host") != f"127.0.0.1:{PORT}" or self.headers.get("Sec-Fetch-Site") == "cross-site" and self.headers.get("Sec-Fetch-Mode") != "navigate":
+        # Checking the host name blocks DNS rebinding. Any port is fine, so SSH can forward to another one.
+        if not LOCAL_HOST.fullmatch(self.headers.get("Host") or "") or self.headers.get("Sec-Fetch-Site") == "cross-site" and self.headers.get("Sec-Fetch-Mode") != "navigate":
             self.send_error(403)
             return
         parts = urlsplit(self.path)
         query = parse_qs(parts.query)
+        if parts.path == "/" and secrets.compare_digest(query.get("key", [""])[0].encode(), KEY.encode()):
+            self.send_response(303)
+            self.send_header("Location", "/")
+            self.send_header("Set-Cookie", f"reader-{PORT}={KEY}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax")
+            self.end_headers()
+            return
+        if parts.path != "/reader.ico" and not secrets.compare_digest(self.cookie().encode(), KEY.encode()):
+            self.reply(403, LOCKED, "text/plain")
+            return
         try:
             if parts.path in ASSETS:
                 name, mime = ASSETS[parts.path]
@@ -441,12 +499,18 @@ if __name__ == "__main__":
     PORT = args.port if args.port is not None else (48764 if args.demo else 48763)
     if not 1 <= PORT <= 65535:
         parser.error("port must be between 1 and 65535")
-    url = f"http://127.0.0.1:{PORT}"
+    try:
+        SEARCH_DB.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
+        KEY = access_key()
+    except OSError as error:
+        sys.exit(f"Could not start the reader: {error}")
+    base = f"http://127.0.0.1:{PORT}"
+    url = f"{base}/?key={KEY}"
     try:
         server = ReaderServer(("127.0.0.1", PORT), Handler)
     except OSError:
         try:
-            with urlopen(url + "/api/info", timeout=2) as response:
+            with urlopen(Request(base + "/api/info", headers={"Cookie": f"reader-{PORT}={KEY}"}), timeout=2) as response:
                 info = json.load(response)
             if info.get("app") != "claude-local-session-reader" or Path(info.get("root", "")) != ROOT:
                 raise ValueError
@@ -457,7 +521,6 @@ if __name__ == "__main__":
             webbrowser.open(url)
         sys.exit()
     try:
-        SEARCH_DB.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
         init_search()
         threading.Thread(target=build_index, daemon=True).start()
         print(f"Claude Code Session Reader  {url}\nPress Ctrl+C to close.", flush=True)
