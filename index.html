@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Claude Code Session Reader</title>
+<link rel="icon" href="/reader.ico" type="image/x-icon">
+<link rel="stylesheet" href="/style.css">
+<script defer src="/markdown-it.min.js"></script>
+<script defer src="/app.js"></script>
+<body>
+  <aside id="sidebar" aria-label="Project navigation">
+    <div class="side-tools">
+      <label class="search"><span aria-hidden="true"></span><input id="projectSearch" type="search" placeholder="Search all sessions" aria-label="Search all sessions"></label>
+      <button id="refresh">Refresh</button>
+    </div>
+    <div id="index-status" role="status"></div>
+    <nav id="projects" aria-label="Local projects"></nav>
+    <div class="language"><select id="language" aria-label="Language"><option value="en" lang="en">English</option><option value="zh-CN" lang="zh-CN">简体中文</option></select></div>
+  </aside>
+  <main>
+    <button id="menu" aria-controls="sidebar" aria-expanded="false">Projects</button>
+    <div id="viewport"><div id="content" class="page" aria-live="polite">Loading local projects…</div></div>
+  </main>
+</body>
+</html>

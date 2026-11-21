@@ -1,0 +1,3 @@
+{"type":"user","cwd":"/work/caption-desk","timestamp":"2026-02-14T10:01:00Z","message":{"role":"user","content":"Can we keep a subtitle on two lines without splitting a name?"}}
+{"type":"assistant","cwd":"/work/caption-desk","timestamp":"2026-02-14T10:02:00Z","message":{"role":"assistant","content":"Wrap after punctuation first. Keep both parts of a speaker name on one line.","stop_reason":"end_turn"}}
+{"type":"custom-title","customTitle":"Subtitle line breaks"}

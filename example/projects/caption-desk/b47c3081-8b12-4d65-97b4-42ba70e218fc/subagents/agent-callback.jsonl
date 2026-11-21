@@ -1,0 +1,2 @@
+{"type":"user","cwd":"/work/caption-desk","timestamp":"2026-02-14T10:10:00Z","message":{"role":"user","content":"Trace the final caption callback."}}
+{"type":"assistant","cwd":"/work/caption-desk","timestamp":"2026-02-14T10:10:00Z","message":{"role":"assistant","content":"The Parakeet result reaches the translator through on_phrase_end. Only the finalized phrase belongs there.","stop_reason":"end_turn"}}
