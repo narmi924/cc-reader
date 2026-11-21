@@ -1,55 +1,69 @@
-[English](README.md) · [简体中文](README.zh-CN.md)
+[English](README.md) | [简体中文](README.zh-CN.md)
 
 # Claude Code 会话阅读器
 
-凭记得的一个项目细节找回旧对话，看清当时怎么问、怎么答，再把那条原话交给下一个 agent。
+凭记得的几个词找回旧对话，看清当时怎么问、怎么答，再把那条原话交给下一个 agent。
 
 [![搜索 Parakeet，打开当时的对话，把原文引用粘进新提示词](media/session-reader.gif)](media/session-reader.mp4)
 
 ## 我为什么做这个工具
 
-我平时在终端和 VS Code 里用 Claude Code。隔几个星期，我往往还记得一个模型名，甚至记得 Claude 说过半句话，却忘了是哪次会话。以前我会在 VS Code 里打开整个 `.claude` 目录搜 JSONL，有时干脆让 Codex 帮我找。可我搜到那个词，还是想往上翻几句。我们只是提过这个选项，还是当时真的决定这么做了？
+我平时在终端和 VS Code 里用 Claude Code，会话记录已经攒到 37 个项目、约 4.5 GB。隔几个星期，我往往还记得一个模型名，甚至记得 Claude 说过半句话，却忘了是哪次会话。以前我会在 VS Code 里打开整个 `.claude` 目录搜 JSONL，有时干脆让 Codex 帮我找。可我搜到那个词，还是想往上翻几句。我们只是提过这个选项，还是当时真的决定这么做了？
 
 | 现有办法 | 能帮我找到什么 | 还缺哪一步 |
 | --- | --- | --- |
 | Claude Code 的 `/resume` | 预览旧会话，回去接着聊。 | 恢复会话时，已经压进摘要的消息不会逐条载入。想核对摘要之前的原话，还得翻磁盘上的记录。[会话恢复说明](https://code.claude.com/docs/en/sessions#what-a-resumed-session-restores) |
 | 在 VS Code 里搜 JSONL | 在所有项目里搜一个词，直接打开命中那一行。 | 两句话中间可能隔着好几条工具调用。我得自己辨认哪些是我的追问、哪些是工具输出，才能把问答读连贯。 |
-| claude-history | 在终端搜到消息，按 `y` 就能复制那条原文。 | 这次复制拿到的是 Markdown 正文。文件路径和会话 ID 各有一个复制键，想把原话和出处一起给 Codex，还得自己拼。[查看器快捷键](https://github.com/raine/claude-history#keyboard-navigation-viewer-mode) |
-| Claude Code Chat Explorer | 在浏览器里搜消息和工具输出，也能让 agent 通过 MCP 搜到摘录。 | 网页导出的是整段会话，MCP 结果里的资源链接也指向整段记录。我还得标出要让另一个 agent 读的是哪一句。[导出和 MCP 搜索](https://github.com/drewburchfield/claude-code-chat-explorer#conversation-viewer) |
+| [claude-history](https://github.com/raine/claude-history) | 在终端搜到消息，按 `y` 就能复制那条原文。 | 这次复制拿到的是 Markdown 正文。文件路径和会话 ID 各有一个复制键，想把原话和出处一起给 Codex，还得自己拼。[查看器快捷键](https://github.com/raine/claude-history#keyboard-navigation-viewer-mode) |
+| [Omnilogue](https://github.com/jhlee0409/omnilogue) | 桌面应用，能搜 Claude Code、Codex 和很多其他助手的会话，点开命中会停在那条消息。 | 消息上的复制按钮只给正文。会话 ID 和文件路径在会话菜单里，原话和出处还得我自己拼到一起。 |
+| [Claude Code Chat Explorer](https://github.com/drewburchfield/claude-code-chat-explorer) | 在浏览器里搜消息和工具输出，也能让 agent 通过 MCP 搜到摘录。 | 网页导出的是整段会话，MCP 结果里的资源链接也指向整段记录。我还得标出要让另一个 agent 读的是哪一句。[导出和 MCP 搜索](https://github.com/drewburchfield/claude-code-chat-explorer#conversation-viewer) |
 
-所以我把「复制引用」放在了搜到的每段原文旁边。演示里搜 `Parakeet` 会找到两条消息。子代理在追踪字幕回调，主对话里 Claude 回答了我问的「最后由哪个模型定稿」。点开后者，能连着读到我的问题和 Claude 的回答。复制引用，原话、说话人和它在本地文件里的位置就一起进了剪贴板。我把它贴给 Codex，接着问「现在的代码还按这个分工跑吗？」
+所以我把「复制引用」放在了搜到的每段原文旁边。演示里搜 `Parakeet` 会在两个项目里找到四条消息：一次讲课录音的转写测试，一个过大的安装包，一个追踪回调的子代理，还有 Claude 回答我「最后由哪个模型定稿」的那次对话。点开最后这条，能连着读到我的问题和 Claude 的回答。复制引用，原话、说话人、记录文件和行号就一起进了剪贴板。我把它贴给 Codex，接着问「现在的代码还按这个分工跑吗？」
 
 ## 快速开始
 
-下载或克隆仓库，打开项目目录。需要 **Python 3.9+** 和浏览器。
+需要 **Python 3.9+** 和浏览器，不用再装别的。
 
-| 平台 | 启动方式 |
-| --- | --- |
-| Windows | 双击 **Open Reader.cmd**，或运行 `py -3 reader.py` |
-| macOS / Linux | 运行 `python3 reader.py` |
+```sh
+git clone https://github.com/narmi924/claude-session-reader.git
+cd claude-session-reader
+python3 reader.py
+```
 
-阅读器会自动打开浏览器。界面默认英文，在项目侧栏选择 **简体中文** 即可切换，下次打开会记住你的选择。
+Windows 上运行 `py -3 reader.py`，或双击 **Open Reader.cmd**。阅读器会自动打开浏览器。界面默认英文，在项目侧栏选择 **简体中文** 即可切换，下次打开会记住你的选择。
 
-**也可以让 agent 帮你启动。** 在这个项目目录里对它说一句：
+**也可以让 agent 帮你启动。** 对它说一句：
 
-> 按 README 在这台电脑上启动 Claude Code 会话阅读器，找到我本机的 Claude Code 会话，把浏览器地址给我。
+> 把 https://github.com/narmi924/claude-session-reader 克隆到本机，按 README 启动阅读器，把它打印的链接给我。
 
-**先试试示例。** 在启动命令后加上 `--demo`，无需本机会话。演示使用独立端口和搜索索引，可以和自己的阅读器同时打开。在「搜索全部项目和会话」里输入 `Parakeet`，点开主对话里的结果，然后点「复制引用」。
+**先试试示例。** 在启动命令后加上 `--demo`，不需要自己的会话。演示使用独立端口和搜索索引，可以和自己的阅读器同时打开。在「搜索全部项目和会话」里输入 `Parakeet`，点开「Why the final caption flickers」里的那条结果，然后点「复制引用」。
+
+**留住更早的会话。** Claude Code 默认只保留 30 天的会话记录。想让更早的会话也能搜到，在 `~/.claude/settings.json` 里设置 `"cleanupPeriodDays": 365` 或更长。[会话记录存放说明](https://code.claude.com/docs/en/sessions#where-transcripts-are-stored)
+
+**会话在远程机器上时**，在那台机器上运行 `python3 reader.py --serve`，从自己的电脑转发端口，再打开它打印的链接。
+
+```sh
+ssh -L 48763:127.0.0.1:48763 you@server
+```
 
 macOS 和 Linux 上的真实 Claude Code 会话还没完整试过，遇到问题欢迎提 issue，也欢迎直接发 PR 修复。
 
 ## 怎么找回一段对话
 
-- **记得模型名、API 或字段。** 可以搜所有项目，也可以只搜一个项目。结果会列出你、Claude 和子代理说过的原话，点一条就跳到当时的位置。
+- **记得几个词。** 可以搜所有项目，也可以只搜一个项目。一条消息包含全部这些词就算命中，顺序不限。结果会列出你、Claude 和子代理说过的原话，点一条就跳到当时的位置。
 - **想看为什么这么答。** 上下翻看前后几轮。展开「操作过程」可以看到记录里保存的思考、工具参数和返回结果，也可以从对话菜单切到子代理。
-- **想交给另一个 agent。** 「复制 ID」适合让它参考整段会话。「复制引用」会带上记录文件、字节位置、内容块、说话人和原文片段，本地 agent 有文件访问权限就能直接找到那一句。
+- **想交给另一个 agent。** 「复制 ID」给出会话 ID。「复制引用」还会带上记录文件、行号、说话人和原话，本地 agent 有文件访问权限就能直接找到那一句。
 
 ## 工作原理
 
 ![本地 JSONL 的消息正文进入 SQLite 索引供搜索；阅读上下文时，服务按位置读取原始记录并显示在本机浏览器中。](media/architecture-zh.png)
 
-Python 服务读取 `~/.claude/projects/`。设置了 `CLAUDE_CONFIG_DIR` 时，会读取该目录下的 `projects/`。原始会话只读，SQLite 搜索索引保存在当前用户的系统缓存目录。界面和 Markdown 渲染器随项目提供，服务只监听 `127.0.0.1`。
+Python 服务读取 `~/.claude/projects/`。设置了 `CLAUDE_CONFIG_DIR` 时，会读取该目录下的 `projects/`。它不会改动你的会话记录。在我 4.5 GB 的记录上，第一次建索引约 20 秒，之后每次搜索约 0.1 秒。
 
-在终端加上 `--serve` 可以只打印地址，加上 `--port 48800` 可以指定端口。
+搜索索引和阅读器的访问密钥放在当前用户的缓存目录：Windows 是 `%LOCALAPPDATA%\claude-session-reader`，macOS 是 `~/Library/Caches/claude-session-reader`，Linux 是 `~/.cache/claude-session-reader`。删掉这个文件夹就清掉了，下次启动会重新建索引。
 
-[MIT 许可证](LICENSE) · [内置 markdown-it 许可证](markdown-it.LICENSE)
+服务只监听 `127.0.0.1`，浏览器要通过带密钥的链接进入。多人共用一台机器时，其他账号读不到你的会话。
+
+在终端加上 `--serve` 可以只打印链接，加上 `--port 48800` 可以指定端口。
+
+本项目采用 [MIT 许可证](LICENSE)。内置的 Markdown 渲染器保留[它自己的许可证](markdown-it.LICENSE)。
