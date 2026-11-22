@@ -1,8 +1,10 @@
-[English](README.md) | [简体中文](README.zh-CN.md)
+<p align="center"><img src="media/icon.png" width="128" alt=""></p>
 
-# Claude Code 会话阅读器
+<h1 align="center">Claude Code 会话阅读器</h1>
 
-凭记得的几个词找回旧对话，看清当时怎么问、怎么答，再把那条原话交给下一个 agent。
+<p align="center">凭记得的几个词找回旧对话，看清当时怎么问、怎么答，再把那条原话交给下一个 agent。</p>
+
+<p align="center"><a href="README.md">English</a> | <a href="README.zh-CN.md">简体中文</a></p>
 
 [![搜索 Parakeet，打开当时的对话，把原文引用粘进新提示词](media/session-reader.gif)](media/session-reader.mp4)
 

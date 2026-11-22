@@ -1,8 +1,10 @@
-[English](README.md) | [简体中文](README.zh-CN.md)
+<p align="center"><img src="media/icon.png" width="128" alt=""></p>
 
-# Claude Code Session Reader
+<h1 align="center">Claude Code Session Reader</h1>
 
-Find an old Claude Code conversation by a few words you remember, read the exchange in context, and give your next agent the exact message.
+<p align="center">Find an old Claude Code conversation by a few words you remember, read the exchange in context, and give your next agent the exact message.</p>
+
+<p align="center"><a href="README.md">English</a> | <a href="README.zh-CN.md">简体中文</a></p>
 
 [![Search for Parakeet, open the original exchange, and paste its reference into a new prompt](media/session-reader.gif)](media/session-reader.mp4)
 
