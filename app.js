@@ -150,7 +150,7 @@ async function route() {
   if (!project) {
     content.replaceChildren(n("h1","",t("No local sessions yet","还没有本地会话")),
       n("p","",t("The reader looks for Claude Code transcripts here:","阅读器会在这个目录查找 Claude Code 的会话记录：")),
-      n("code","",info?.root || ""), n("p","notice",t("Start a Claude Code session and refresh, or launch the reader with --demo to explore the example.","运行一次 Claude Code 后刷新，或用 --demo 启动阅读器体验示例。")));
+      n("code","",info?.root || ""), n("p","notice",t("Start a Claude Code session, then refresh.","运行一次 Claude Code 后刷新。")));
     return;
   }
   if (!session) {
@@ -215,7 +215,7 @@ function referenceText(hit, span) {
     const [start,end] = span, stop = end+80;
     quote = (start > 56 ? "…" : "") + hit.body.slice(Math.max(0,start-56),stop) + (stop < hit.body.length ? "…" : "");
   }
-  const source = (info.demo ? "example/projects" : info.root) + "/" + hit.file;
+  const source = info.root + "/" + hit.file;
   return [t("Claude Code local session: ","Claude Code 本地会话：") + id,
     t("Transcript: ","记录文件：") + source + t(", line ","，第 ") + hit.line + t(""," 行"),
     speaker(hit,true) + t(": “","：“") + quote.replace(/\s+/g," ").trim() + "”"].join("\n");

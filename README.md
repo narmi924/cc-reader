@@ -38,8 +38,6 @@ On Windows, run `py -3 reader.py` or double-click **Open Reader.cmd**. The reade
 
 > Clone https://github.com/narmi924/claude-session-reader, start the reader as its README describes, and give me the link it prints.
 
-**Try it without your own history.** Add `--demo` to the launch command. The demo uses its own port and search index, so you can keep your personal reader open. In **Search all sessions**, type `Parakeet`, open the match in “Why the final caption flickers”, and click **Copy reference**.
-
 **Keep older sessions.** Claude Code deletes transcripts after 30 days by default. To keep more of them searchable, set `"cleanupPeriodDays": 365` or longer in `~/.claude/settings.json`. [Where transcripts are stored](https://code.claude.com/docs/en/sessions#where-transcripts-are-stored)
 
 **On a remote machine**, run `python3 reader.py --serve` there, forward the port from your computer, and open the link it printed.

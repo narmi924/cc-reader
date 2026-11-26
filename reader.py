@@ -474,7 +474,7 @@ class Handler(BaseHTTPRequestHandler):
             elif parts.path == "/api/block":
                 data = detail(transcript_path(query["id"][0]), int(query["at"][0]), int(query.get("index", [0])[0]), query.get("part", [None])[0])
             elif parts.path == "/api/info":
-                data = dict(app="claude-local-session-reader", root=ROOT.as_posix(), demo=ROOT == APP / "example" / "projects", index=index_status)
+                data = dict(app="claude-local-session-reader", root=ROOT.as_posix(), index=index_status)
             elif parts.path == "/api/identity":
                 data = "claude-local-session-reader"
             else:
@@ -490,13 +490,9 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--serve", action="store_true", help="print the URL without opening a browser")
-    parser.add_argument("--demo", action="store_true", help="read the bundled fictional sessions")
-    parser.add_argument("--port", type=int, help="choose a local port (default 48763, demo 48764)")
+    parser.add_argument("--port", type=int, default=PORT, help="choose a local port (default 48763)")
     args = parser.parse_args()
-    if args.demo:
-        ROOT = APP / "example" / "projects"
-        SEARCH_DB = search_database(ROOT)
-    PORT = args.port if args.port is not None else (48764 if args.demo else 48763)
+    PORT = args.port
     if not 1 <= PORT <= 65535:
         parser.error("port must be between 1 and 65535")
     try:

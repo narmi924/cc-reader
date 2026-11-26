@@ -38,8 +38,6 @@ Windows 上运行 `py -3 reader.py`，或双击 **Open Reader.cmd**。阅读器�
 
 > 把 https://github.com/narmi924/claude-session-reader 克隆到本机，按 README 启动阅读器，把它打印的链接给我。
 
-**先试试示例。** 在启动命令后加上 `--demo`，不需要自己的会话。演示使用独立端口和搜索索引，可以和自己的阅读器同时打开。在「搜索全部项目和会话」里输入 `Parakeet`，点开「Why the final caption flickers」里的那条结果，然后点「复制引用」。
-
 **留住更早的会话。** Claude Code 默认只保留 30 天的会话记录。想让更早的会话也能搜到，在 `~/.claude/settings.json` 里设置 `"cleanupPeriodDays": 365` 或更长。[会话记录存放说明](https://code.claude.com/docs/en/sessions#where-transcripts-are-stored)
 
 **会话在远程机器上时**，在那台机器上运行 `python3 reader.py --serve`，从自己的电脑转发端口，再打开它打印的链接。
