@@ -1,5 +1,24 @@
 "use strict";
 
+// Share one event stream across tabs so long-lived requests don't exhaust the
+// browser's per-origin HTTP connection pool. Another tab takes over on close.
+let pageLifetime;
+window.addEventListener("pageshow", () => {
+  pageLifetime = new AbortController();
+  const {signal} = pageLifetime;
+  const stayConnected = () => new Promise(resolve => {
+    const stream = new EventSource("/api/open");
+    signal.addEventListener("abort", () => {
+      stream.close();
+      resolve();
+    }, {once:true});
+  });
+  navigator.locks.request("reader-open", {signal}, stayConnected).catch(error => {
+    if (!signal.aborted) throw error;
+  });
+});
+window.addEventListener("pagehide", () => pageLifetime?.abort());
+
 const $ = id => document.getElementById(id);
 let language = localStorage.getItem("reader-language") === "zh-CN" ? "zh-CN" : "en";
 const t = (en, zh) => language === "zh-CN" ? zh : en;

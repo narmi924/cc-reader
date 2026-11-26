@@ -10,8 +10,9 @@ import socket
 import sqlite3
 import sys
 import threading
+import time
 import webbrowser
-from contextlib import closing
+from contextlib import closing, contextmanager
 from datetime import datetime
 from functools import lru_cache
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -253,6 +254,7 @@ def search_database(root):
 SEARCH_DB = search_database(ROOT)
 index_status = "building"
 index_lock = threading.Lock()
+stopping = threading.Event()
 generated_text = re.compile(r"<(local-command-stdout|local-command-stderr|local-command-caveat|task-notification|system-reminder)\b[^>]*>.*?</\1>", re.S)
 
 
@@ -321,6 +323,8 @@ def sync_search(project="", file=""):
                         db.execute("DELETE FROM messages WHERE path=?", (key,))
                     fp.seek(pos)
                     while pos < st.st_size:
+                        if stopping.is_set():
+                            raise InterruptedError("Reader closed")
                         record = fp.readline(st.st_size - pos)
                         if not record.endswith(b"\n"):
                             break
@@ -356,6 +360,8 @@ def build_index():
         sync_search()
         index_status = "ready"
     except (OSError, ValueError, sqlite3.Error) as error:
+        if stopping.is_set():
+            return
         index_status = "failed"
         print(f"Could not build the search index: {error}", file=sys.stderr, flush=True)
 
@@ -396,6 +402,39 @@ def search_messages(term, project="", file=""):
 
 class ReaderServer(ThreadingHTTPServer):
     allow_reuse_address = os.name != "nt"
+
+    def __init__(self, address, handler, *, wait_for_browser):
+        super().__init__(address, handler)
+        self.timeout = 0.5
+        self.page_lock = threading.Lock()
+        self.connections = 0
+        self.close_at = None if wait_for_browser else time.monotonic() + 60
+
+    @contextmanager
+    def connected_page(self):
+        with self.page_lock:
+            self.connections += 1
+            self.close_at = None
+        try:
+            yield
+        finally:
+            with self.page_lock:
+                self.connections -= 1
+                if not self.connections:
+                    # A refresh briefly disconnects the last page.
+                    self.close_at = time.monotonic() + 3
+
+    def serve_until_closed(self):
+        while True:
+            with self.page_lock:
+                if self.close_at is not None and time.monotonic() >= self.close_at:
+                    return
+            self.handle_request()
+
+    def reopening(self):
+        with self.page_lock:
+            if not self.connections and self.close_at is not None:
+                self.close_at = time.monotonic() + 60
 
     def server_bind(self):
         if os.name == "nt":
@@ -465,6 +504,16 @@ class Handler(BaseHTTPRequestHandler):
                 name, mime = ASSETS[parts.path]
                 self.reply(200, (APP / name).read_bytes(), mime)
                 return
+            if parts.path == "/api/open":
+                with self.server.connected_page():
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/event-stream")
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    self.wfile.write(b"retry: 500\n: reader open\n\n")
+                    # A cancelled event stream closes the socket, including on browser exit.
+                    self.rfile.read(1)
+                return
             if parts.path == "/api/projects":
                 data = catalog()
             elif parts.path == "/api/search":
@@ -474,6 +523,8 @@ class Handler(BaseHTTPRequestHandler):
             elif parts.path == "/api/block":
                 data = detail(transcript_path(query["id"][0]), int(query["at"][0]), int(query.get("index", [0])[0]), query.get("part", [None])[0])
             elif parts.path == "/api/info":
+                if "launch" in query:
+                    self.server.reopening()
                 data = dict(app="claude-local-session-reader", root=ROOT.as_posix(), index=index_status)
             elif parts.path == "/api/identity":
                 data = "claude-local-session-reader"
@@ -503,10 +554,10 @@ if __name__ == "__main__":
     base = f"http://127.0.0.1:{PORT}"
     url = f"{base}/?key={KEY}"
     try:
-        server = ReaderServer(("127.0.0.1", PORT), Handler)
+        server = ReaderServer(("127.0.0.1", PORT), Handler, wait_for_browser=args.serve)
     except OSError:
         try:
-            with urlopen(Request(base + "/api/info", headers={"Cookie": f"reader-{PORT}={KEY}"}), timeout=2) as response:
+            with urlopen(Request(base + "/api/info?launch=1", headers={"Cookie": f"reader-{PORT}={KEY}"}), timeout=2) as response:
                 info = json.load(response)
             if info.get("app") != "claude-local-session-reader" or Path(info.get("root", "")) != ROOT:
                 raise ValueError
@@ -516,16 +567,20 @@ if __name__ == "__main__":
         if not args.serve:
             webbrowser.open(url)
         sys.exit()
+    index_thread = threading.Thread(target=build_index)
     try:
         init_search()
-        threading.Thread(target=build_index, daemon=True).start()
-        print(f"Claude Code Session Reader  {url}\nPress Ctrl+C to close.", flush=True)
+        index_thread.start()
+        print(f"Claude Code Session Reader  {url}", flush=True)
         if not args.serve:
-            webbrowser.open(url)
-        server.serve_forever()
+            threading.Thread(target=webbrowser.open, args=(url,), daemon=True).start()
+        server.serve_until_closed()
     except KeyboardInterrupt:
         pass
     except (OSError, sqlite3.Error) as error:
         sys.exit(f"Could not start the reader: {error}")
     finally:
+        stopping.set()
         server.server_close()
+        if index_thread.is_alive():
+            index_thread.join()
