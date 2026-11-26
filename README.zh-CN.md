@@ -20,25 +20,26 @@
 | [Omnilogue](https://github.com/jhlee0409/omnilogue) | 桌面应用，能搜 Claude Code、Codex 和很多其他助手的会话，点开命中会停在那条消息。 | 消息上的复制按钮只给正文。会话 ID 和文件路径在会话菜单里，原话和出处还得我自己拼到一起。 |
 | [Claude Code Chat Explorer](https://github.com/drewburchfield/claude-code-chat-explorer) | 在浏览器里搜消息和工具输出，也能让 agent 通过 MCP 搜到摘录。 | 网页导出的是整段会话，MCP 结果里的资源链接也指向整段记录。我还得标出要让另一个 agent 读的是哪一句。[导出和 MCP 搜索](https://github.com/drewburchfield/claude-code-chat-explorer#conversation-viewer) |
 
-所以我把「复制引用」放在了搜到的每段原文旁边。演示里搜 `Parakeet` 会在两个项目里找到四条消息：一次讲课录音的转写测试，一个过大的安装包，一个追踪回调的子代理，还有 Claude 回答我「最后由哪个模型定稿」的那次对话。点开最后这条，能连着读到我的问题和 Claude 的回答。复制引用，原话、说话人、记录文件和行号就一起进了剪贴板。我把它贴给 Codex，接着问「现在的代码还按这个分工跑吗？」
+所以我把「复制引用」放在了搜到的每段原文旁边。上面的视频里搜 `Parakeet` 会在两个项目里找到四条消息：一次讲课录音的转写测试，一个过大的安装包，一个追踪回调的子代理，还有 Claude 回答我「最后由哪个模型定稿」的那次对话。点开最后这条，能连着读到我的问题和 Claude 的回答。复制引用，原话、说话人、记录文件和行号就一起进了剪贴板。我把它贴给 Codex，接着问「现在的代码还按这个分工跑吗？」
 
 ## 快速开始
 
-需要 **Python 3.9+** 和浏览器，不用再装别的。
+需要 **Python 3.9+** 和浏览器。克隆仓库后，打开对应系统的启动入口。
 
 ```sh
 git clone https://github.com/narmi924/claude-session-reader.git
 cd claude-session-reader
-python3 reader.py
 ```
 
-Windows 上运行 `py -3 reader.py`，或双击 **Open Reader.cmd**。阅读器会自动打开浏览器。界面默认英文，在项目侧栏选择 **简体中文** 即可切换，下次打开会记住你的选择。
+- **Windows** — 双击 `launch/` 中的 **Open Reader.pyw**。如果已有指向旧 `.cmd` 的快捷方式，将它改为指向这个文件。
+- **macOS** — 双击 `launch/` 中的 **Open Reader.app**，将它留在仓库目录里。
+- **Linux** — 运行一次 `python3 launch/install-linux.py`，之后从应用菜单打开 **Claude Code 会话阅读器**。
 
-**也可以让 agent 帮你启动。** 对它说一句：
+启动后会在默认浏览器打开本机会话。关闭最后一个阅读器标签页，服务会在几秒后自动退出。在侧栏选择 **简体中文** 即可切换语言。
 
-> 把 https://github.com/narmi924/claude-session-reader 克隆到本机，按 README 启动阅读器，把它打印的链接给我。
+也可以在终端运行 `python3 reader.py`（Windows 用 `py -3 reader.py`），或者让 agent 帮你启动：
 
-**先试试示例。** 在启动命令后加上 `--demo`，不需要自己的会话。演示使用独立端口和搜索索引，可以和自己的阅读器同时打开。在「搜索全部项目和会话」里输入 `Parakeet`，点开「Why the final caption flickers」里的那条结果，然后点「复制引用」。
+> 把 https://github.com/narmi924/claude-session-reader 克隆到本机，启动阅读器并打开我的本地会话。
 
 **留住更早的会话。** Claude Code 默认只保留 30 天的会话记录。想让更早的会话也能搜到，在 `~/.claude/settings.json` 里设置 `"cleanupPeriodDays": 365` 或更长。[会话记录存放说明](https://code.claude.com/docs/en/sessions#where-transcripts-are-stored)
 

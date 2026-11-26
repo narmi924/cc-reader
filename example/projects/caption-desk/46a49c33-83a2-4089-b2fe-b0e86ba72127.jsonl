@@ -1,5 +1,0 @@
-{"type":"user","cwd":"/work/caption-desk","timestamp":"2026-11-12T06:40:00Z","message":{"role":"user","content":"The installer is 2.6 GB. What's taking the space?"}}
-{"type":"assistant","cwd":"/work/caption-desk","timestamp":"2026-11-12T06:41:00Z","message":{"role":"assistant","content":[{"type":"tool_use","id":"du-models","name":"Bash","input":{"command":"du -sh models/*"}}],"stop_reason":"tool_use"}}
-{"type":"user","cwd":"/work/caption-desk","timestamp":"2026-11-12T06:41:00Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"du-models","content":"2.3G\tmodels/parakeet-tdt-0.6b\n180M\tmodels/moonshine-base"}]}}
-{"type":"assistant","cwd":"/work/caption-desk","timestamp":"2026-11-12T06:42:00Z","message":{"role":"assistant","content":"Almost all of it is the Parakeet model. Download it on first launch and the installer drops under 300 MB.","stop_reason":"end_turn"}}
-{"type":"custom-title","customTitle":"Package the Windows build"}

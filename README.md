@@ -20,25 +20,26 @@ I use Claude Code in the terminal and in VS Code, and my history has grown to ab
 | [Omnilogue](https://github.com/jhlee0409/omnilogue) | A desktop app that searches sessions from Claude Code, Codex and many other assistants, and opens a hit at that message. | A message's copy button gives me its text. The session ID and file path are in the session's menu, so I still put the quote and its source together myself. |
 | [Claude Code Chat Explorer](https://github.com/drewburchfield/claude-code-chat-explorer) | I can search messages and tool output in the browser. An agent can find matching excerpts over MCP, too. | The browser exports a whole conversation, and an MCP result links to the conversation transcript. I still have to point the next agent to the particular message I picked. [Conversation viewer and MCP search](https://github.com/drewburchfield/claude-code-chat-explorer#conversation-viewer) |
 
-That's why there's a **Copy reference** button beside each matching passage. In the demo, `Parakeet` turns up in four messages across two projects: a lecture transcription test, an oversized installer, a subagent tracing a callback, and the conversation where Claude answers my question about which model finalizes a caption. I open that last one, read my question and the reply together, then copy the message with its speaker, transcript path and line number. All I need to add when I paste it into Codex is “Does the code still follow this split?”
+That's why there's a **Copy reference** button beside each matching passage. In the video above, `Parakeet` turns up in four messages across two projects: a lecture transcription test, an oversized installer, a subagent tracing a callback, and the conversation where Claude answers my question about which model finalizes a caption. I open that last one, read my question and the reply together, then copy the message with its speaker, transcript path and line number. All I need to add when I paste it into Codex is “Does the code still follow this split?”
 
 ## Quick start
 
-You need **Python 3.9+** and a browser. There's nothing else to install.
+You need **Python 3.9+** and a browser. Clone the repository, then open the launcher for your desktop.
 
 ```sh
 git clone https://github.com/narmi924/claude-session-reader.git
 cd claude-session-reader
-python3 reader.py
 ```
 
-On Windows, run `py -3 reader.py` or double-click **Open Reader.cmd**. The reader opens in your browser. Choose **简体中文** in the project sidebar to switch languages, and the reader remembers your choice.
+- **Windows** — Double-click **Open Reader.pyw** in `launch/`. If you have a shortcut to the old `.cmd` launcher, point it here.
+- **macOS** — Double-click **Open Reader.app** in `launch/`. Keep the app in the checkout.
+- **Linux** — Run `python3 launch/install-linux.py` once, then open **Claude Code Session Reader** from your application menu.
 
-**Prefer to ask your agent?** Paste this:
+The launcher opens your local sessions in the default browser. Closing the last reader tab stops the server after a few seconds. Choose **简体中文** in the sidebar to switch languages.
 
-> Clone https://github.com/narmi924/claude-session-reader, start the reader as its README describes, and give me the link it prints.
+To launch from a terminal, run `python3 reader.py` (`py -3 reader.py` on Windows). You can also ask your agent:
 
-**Try it without your own history.** Add `--demo` to the launch command. The demo uses its own port and search index, so you can keep your personal reader open. In **Search all sessions**, type `Parakeet`, open the match in “Why the final caption flickers”, and click **Copy reference**.
+> Clone https://github.com/narmi924/claude-session-reader, start the reader, and open my local sessions.
 
 **Keep older sessions.** Claude Code deletes transcripts after 30 days by default. To keep more of them searchable, set `"cleanupPeriodDays": 365` or longer in `~/.claude/settings.json`. [Where transcripts are stored](https://code.claude.com/docs/en/sessions#where-transcripts-are-stored)
 

@@ -1,3 +1,0 @@
-{"type":"user","cwd":"/work/invoice-api","timestamp":"2026-10-21T07:30:00Z","message":{"role":"user","content":"A client retried a payment and we charged twice."}}
-{"type":"assistant","cwd":"/work/invoice-api","timestamp":"2026-10-21T07:31:00Z","message":{"role":"assistant","content":"Store the Idempotency-Key with the response for 24 hours. A retry with the same key returns the stored response instead of charging again.","stop_reason":"end_turn"}}
-{"type":"custom-title","customTitle":"Idempotency keys for retries"}

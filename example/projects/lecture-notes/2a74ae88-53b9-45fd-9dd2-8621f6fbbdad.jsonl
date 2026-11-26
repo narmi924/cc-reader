@@ -1,3 +1,0 @@
-{"type":"user","cwd":"/work/lecture-notes","timestamp":"2026-10-09T11:00:00Z","message":{"role":"user","content":"Which speech model should transcribe the recorded lectures?"}}
-{"type":"assistant","cwd":"/work/lecture-notes","timestamp":"2026-10-09T11:01:00Z","message":{"role":"assistant","content":"Whisper large-v3 handles the lecturer's accent best. Parakeet is faster, but it dropped technical terms in the sample.","stop_reason":"end_turn"}}
-{"type":"custom-title","customTitle":"Transcribe recorded lectures"}
