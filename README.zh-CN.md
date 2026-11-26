@@ -1,12 +1,12 @@
 <p align="center"><img src="media/icon.png" width="128" alt=""></p>
 
-<h1 align="center">Claude Code 会话阅读器</h1>
+<h1 align="center">CC Reader</h1>
 
 <p align="center">凭记得的几个词找回旧对话，看清当时怎么问、怎么答，再把那条原话交给下一个 agent。</p>
 
 <p align="center"><a href="README.md">English</a> | <a href="README.zh-CN.md">简体中文</a></p>
 
-[![搜索 Parakeet，打开当时的对话，把原文引用粘进新提示词](media/session-reader.gif)](media/session-reader.mp4)
+[![搜索 Parakeet，打开当时的对话，把原文引用粘进新提示词](media/cc-reader.gif)](media/cc-reader.mp4)
 
 ## 我为什么做这个工具
 
@@ -27,19 +27,19 @@
 需要 **Python 3.9+** 和浏览器。克隆仓库后，打开对应系统的启动入口。
 
 ```sh
-git clone https://github.com/narmi924/claude-session-reader.git
-cd claude-session-reader
+git clone https://github.com/narmi924/cc-reader.git
+cd cc-reader
 ```
 
-- **Windows** — 双击 `launch/` 中的 **Open Reader.pyw**。如果已有指向旧 `.cmd` 的快捷方式，将它改为指向这个文件。
-- **macOS** — 双击 `launch/` 中的 **Open Reader.app**，将它留在仓库目录里。
-- **Linux** — 运行一次 `python3 launch/install-linux.py`，之后从应用菜单打开 **Claude Code 会话阅读器**。
+- **Windows** — 双击 `launch/` 中的 **CC Reader.pyw**。已有阅读器快捷方式的，可以将它指向这个文件。
+- **macOS** — 双击 `launch/` 中的 **CC Reader.app**，将它留在仓库目录里。
+- **Linux** — 运行一次 `python3 launch/install-linux.py`，之后从应用菜单打开 **CC Reader**。
 
 启动后会在默认浏览器打开本机会话。关闭最后一个阅读器标签页，服务会在几秒后自动退出。在侧栏选择 **简体中文** 即可切换语言。
 
 也可以在终端运行 `python3 reader.py`（Windows 用 `py -3 reader.py`），或者让 agent 帮你启动：
 
-> 把 https://github.com/narmi924/claude-session-reader 克隆到本机，启动阅读器并打开我的本地会话。
+> 把 https://github.com/narmi924/cc-reader 克隆到本机，启动阅读器并打开我的本地会话。
 
 **留住更早的会话。** Claude Code 默认只保留 30 天的会话记录。想让更早的会话也能搜到，在 `~/.claude/settings.json` 里设置 `"cleanupPeriodDays": 365` 或更长。[会话记录存放说明](https://code.claude.com/docs/en/sessions#where-transcripts-are-stored)
 
@@ -63,7 +63,7 @@ macOS 和 Linux 上的真实 Claude Code 会话还没完整试过，遇到问题
 
 Python 服务读取 `~/.claude/projects/`。设置了 `CLAUDE_CONFIG_DIR` 时，会读取该目录下的 `projects/`。它不会改动你的会话记录。在我 4.5 GB 的记录上，第一次建索引约 20 秒，之后每次搜索约 0.1 秒。
 
-搜索索引和阅读器的访问密钥放在当前用户的缓存目录：Windows 是 `%LOCALAPPDATA%\claude-session-reader`，macOS 是 `~/Library/Caches/claude-session-reader`，Linux 是 `~/.cache/claude-session-reader`。删掉这个文件夹就清掉了，下次启动会重新建索引。
+搜索索引和阅读器的访问密钥放在当前用户的缓存目录：Windows 是 `%LOCALAPPDATA%\cc-reader`，macOS 是 `~/Library/Caches/cc-reader`，Linux 是 `~/.cache/cc-reader`。首次启动时，CC Reader 会沿用旧版的索引和密钥。要清空缓存，先关闭阅读器，再删除这个目录；如果旁边还有旧版的 `claude-session-reader` 目录，也一并删除。
 
 服务只监听 `127.0.0.1`，浏览器要通过带密钥的链接进入。多人共用一台机器时，其他账号读不到你的会话。
 

@@ -1,12 +1,12 @@
 <p align="center"><img src="media/icon.png" width="128" alt=""></p>
 
-<h1 align="center">Claude Code Session Reader</h1>
+<h1 align="center">CC Reader</h1>
 
 <p align="center">Find an old Claude Code conversation by a few words you remember, read the exchange in context, and give your next agent the exact message.</p>
 
 <p align="center"><a href="README.md">English</a> | <a href="README.zh-CN.md">简体中文</a></p>
 
-[![Search for Parakeet, open the original exchange, and paste its reference into a new prompt](media/session-reader.gif)](media/session-reader.mp4)
+[![Search for Parakeet, open the original exchange, and paste its reference into a new prompt](media/cc-reader.gif)](media/cc-reader.mp4)
 
 ## Why I built this
 
@@ -27,19 +27,19 @@ That's why there's a **Copy reference** button beside each matching passage. In 
 You need **Python 3.9+** and a browser. Clone the repository, then open the launcher for your desktop.
 
 ```sh
-git clone https://github.com/narmi924/claude-session-reader.git
-cd claude-session-reader
+git clone https://github.com/narmi924/cc-reader.git
+cd cc-reader
 ```
 
-- **Windows** — Double-click **Open Reader.pyw** in `launch/`. If you have a shortcut to the old `.cmd` launcher, point it here.
-- **macOS** — Double-click **Open Reader.app** in `launch/`. Keep the app in the checkout.
-- **Linux** — Run `python3 launch/install-linux.py` once, then open **Claude Code Session Reader** from your application menu.
+- **Windows** — Double-click **CC Reader.pyw** in `launch/`. Point any existing reader shortcut to this file.
+- **macOS** — Double-click **CC Reader.app** in `launch/`. Keep the app in the checkout.
+- **Linux** — Run `python3 launch/install-linux.py` once, then open **CC Reader** from your application menu.
 
 The launcher opens your local sessions in the default browser. Closing the last reader tab stops the server after a few seconds. Choose **简体中文** in the sidebar to switch languages.
 
 To launch from a terminal, run `python3 reader.py` (`py -3 reader.py` on Windows). You can also ask your agent:
 
-> Clone https://github.com/narmi924/claude-session-reader, start the reader, and open my local sessions.
+> Clone https://github.com/narmi924/cc-reader, start the reader, and open my local sessions.
 
 **Keep older sessions.** Claude Code deletes transcripts after 30 days by default. To keep more of them searchable, set `"cleanupPeriodDays": 365` or longer in `~/.claude/settings.json`. [Where transcripts are stored](https://code.claude.com/docs/en/sessions#where-transcripts-are-stored)
 
@@ -63,7 +63,7 @@ I haven't tried the full workflow with real Claude Code sessions on macOS or Lin
 
 The Python server reads `~/.claude/projects/` or the `projects/` directory under `CLAUDE_CONFIG_DIR`, and never changes your transcripts. On my 4.5 GB history, the first index takes about 20 seconds and a search takes about a tenth of a second.
 
-The search index and the reader's key are kept in your user cache: `%LOCALAPPDATA%\claude-session-reader` on Windows, `~/Library/Caches/claude-session-reader` on macOS and `~/.cache/claude-session-reader` on Linux. Delete that folder to remove them. The reader builds a new index the next time it starts.
+The search index and the reader's key are kept in your user cache: `%LOCALAPPDATA%\cc-reader` on Windows, `~/Library/Caches/cc-reader` on macOS and `~/.cache/cc-reader` on Linux. CC Reader imports the previous index and key on first launch. To clear all cached data, close the reader and delete this folder and any older `claude-session-reader` folder alongside it.
 
 The server listens only on `127.0.0.1`, and the browser gets in through the link with the key. Other accounts on a shared machine can't read your sessions.
 

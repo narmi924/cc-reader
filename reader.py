@@ -9,6 +9,7 @@ import secrets
 import socket
 import sqlite3
 import sys
+import tempfile
 import threading
 import time
 import webbrowser
@@ -248,7 +249,36 @@ def search_database(root):
     else:
         base = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache")
     key = hashlib.sha256(os.fsencode(os.path.normcase(str(root)))).hexdigest()[:24]
-    return base / "claude-session-reader" / key / "search.sqlite3"
+    return base / "cc-reader" / key / "search.sqlite3"
+
+
+def prepare_cache(database):
+    directory = database.parent
+    previous = directory.parents[1] / "claude-session-reader" / directory.name
+    if directory.is_dir() or not previous.is_dir():
+        directory.mkdir(parents=True, mode=0o700, exist_ok=True)
+        return
+
+    directory.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
+    # The previous reader may still be writing its index. Publish a consistent
+    # copy and its matching key together, even if two launchers start at once.
+    with tempfile.TemporaryDirectory(dir=directory.parent) as temp:
+        staged = Path(temp) / directory.name
+        staged.mkdir(mode=0o700)
+        old_key = previous / "key"
+        if old_key.is_file():
+            with os.fdopen(os.open(staged / "key", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "wb") as key:
+                key.write(old_key.read_bytes())
+        old_db = previous / database.name
+        if old_db.is_file():
+            with closing(sqlite3.connect(old_db.resolve().as_uri() + "?mode=ro", uri=True)) as source:
+                with closing(sqlite3.connect(staged / database.name)) as target:
+                    source.backup(target)
+        try:
+            staged.rename(directory)
+        except OSError:
+            if not directory.is_dir():
+                raise
 
 
 SEARCH_DB = search_database(ROOT)
@@ -547,9 +577,9 @@ if __name__ == "__main__":
     if not 1 <= PORT <= 65535:
         parser.error("port must be between 1 and 65535")
     try:
-        SEARCH_DB.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
+        prepare_cache(SEARCH_DB)
         KEY = access_key()
-    except OSError as error:
+    except (OSError, sqlite3.Error) as error:
         sys.exit(f"Could not start the reader: {error}")
     base = f"http://127.0.0.1:{PORT}"
     url = f"{base}/?key={KEY}"
@@ -571,7 +601,7 @@ if __name__ == "__main__":
     try:
         init_search()
         index_thread.start()
-        print(f"Claude Code Session Reader  {url}", flush=True)
+        print(f"CC Reader  {url}", flush=True)
         if not args.serve:
             threading.Thread(target=webbrowser.open, args=(url,), daemon=True).start()
         server.serve_until_closed()
