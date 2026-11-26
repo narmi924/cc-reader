@@ -1,2 +1,1 @@
-*.jsonl text eol=lf
-*.cmd text eol=crlf
+open-reader text eol=lf

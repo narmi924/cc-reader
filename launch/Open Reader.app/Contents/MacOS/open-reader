@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+root=$(CDPATH= cd -P "$(dirname "$0")/../../../.." && pwd)
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+# Let Finder launch the app again while the reader is open.
+nohup python3 "$root/reader.py" "$@" </dev/null >/dev/null 2>&1 &
