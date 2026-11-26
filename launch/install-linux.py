@@ -21,8 +21,7 @@ icon = str(root / "media" / "icon.png").replace("\\", "\\\\")
 entry.write_text(
     "[Desktop Entry]\n"
     "Type=Application\n"
-    "Name=Claude Code Session Reader\n"
-    "Name[zh_CN]=Claude Code 会话阅读器\n"
+    "Name=CC Reader\n"
     f"Exec={exec_argument(sys.executable)} {exec_argument(root / 'reader.py')}\n"
     f"Icon={icon}\n"
     "Terminal=false\n"

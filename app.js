@@ -25,7 +25,7 @@ const t = (en, zh) => language === "zh-CN" ? zh : en;
 let info, infoTimer;
 function localizePage() {
   document.documentElement.lang = language;
-  document.title = t("Claude Code Session Reader","Claude Code 会话阅读器");
+  document.title = "CC Reader";
   $("sidebar").ariaLabel = t("Project navigation","项目导航");
   $("projects").ariaLabel = t("Local projects","本地项目");
   $("projectSearch").placeholder = $("projectSearch").ariaLabel = t("Search all sessions","搜索全部项目和会话");
